@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/Archive.ico" width="64" alt="Vanadium Logo">
+  <img src="icons/Archive.ico" width="84" alt="Vanadium Logo">
 </p>
 
 ### **Vanadium**
