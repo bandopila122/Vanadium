@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/archive.ico" width="64" alt="Vanadium Logo">
+  <img src="icons/Archive.ico" width="64" alt="Vanadium Logo">
 </p>
 
 A simple archiver made in Python using PyQt6.
