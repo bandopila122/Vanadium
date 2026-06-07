@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/Archive.ico" width="84" alt="Vanadium Logo">
+  <img src="icons/NetworkPlace.ico" width="84" alt="Vanadium Logo">
 </p>
 
 ### **Vanadium**
@@ -11,4 +11,6 @@
 ```
 pip install PyQt6
 ```
+
+**Версия приложения: Beta v0.7.7**
 
