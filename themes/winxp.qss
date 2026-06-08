@@ -1,0 +1,17 @@
+QMainWindow { background-color: #ECE9D8; }
+QToolBar { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0EFE2, stop:1 #D6D2C2); border: 1px solid #ACA899; padding: 2px; }
+QToolButton { background-color: transparent; border: 1px solid transparent; padding: 4px; border-radius: 3px; font-family: 'Tahoma'; }
+QToolButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFDF4, stop:1 #EDE8D0); border: 1px solid #B8A860; }
+QTableWidget { background-color: white; border: 2px solid #ACA899; gridline-color: #F0F0F0; selection-background-color: #316AC5; selection-color: white; font-family: 'Tahoma'; font-size: 8pt; }
+QHeaderView::section { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:0.5 #ECE9D8, stop:1 #D6D2C2); border: 1px solid #ACA899; padding: 3px; font-weight: bold; color: #000; font-family: 'Tahoma'; }
+QTreeWidget { background-color: white; border: 2px solid #ACA899; selection-background-color: #316AC5; selection-color: white; font-family: 'Tahoma'; font-size: 8pt; }
+QStatusBar { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ECE9D8, stop:1 #D6D2C2); border-top: 2px solid #ACA899; color: #000; font-family: 'Tahoma'; }
+QLineEdit { background-color: white; border: 2px inset #ACA899; padding: 2px 4px; font-family: 'Tahoma'; font-size: 8pt; }
+QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFDF4, stop:1 #ECE9D8); border: 2px outset #ACA899; padding: 3px 12px; border-radius: 3px; font-family: 'Tahoma'; font-size: 8pt; }
+QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFDF4, stop:1 #D6D2C2); }
+QPushButton:pressed { border: 2px inset #ACA899; }
+QMenu { background-color: #FFFDF4; border: 2px solid #ACA899; font-family: 'Tahoma'; font-size: 8pt; }
+QMenu::item:selected { background-color: #316AC5; color: white; }
+QMenuBar { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0EFE2, stop:1 #D6D2C2); font-family: 'Tahoma'; }
+QMenuBar::item:selected { background-color: #316AC5; color: white; }
+QDialog { background-color: #ECE9D8; }

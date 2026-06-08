@@ -1,0 +1,18 @@
+QMainWindow { background-color: #C0C0C0; }
+QToolBar { background-color: #C0C0C0; border: 2px outset #FFFFFF; padding: 1px; }
+QToolButton { background-color: #C0C0C0; border: 2px outset #FFFFFF; padding: 2px; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QToolButton:hover { background-color: #D4D0C8; }
+QToolButton:pressed { border: 2px inset #808080; }
+QTableWidget { background-color: white; border: 2px inset #808080; gridline-color: #C0C0C0; selection-background-color: #000080; selection-color: white; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QHeaderView::section { background-color: #C0C0C0; border: 2px outset #FFFFFF; padding: 2px; color: black; font-family: 'MS Sans Serif'; font-size: 8pt; font-weight: normal; }
+QTreeWidget { background-color: white; border: 2px inset #808080; selection-background-color: #000080; selection-color: white; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QStatusBar { background-color: #C0C0C0; border: 2px outset #FFFFFF; color: black; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QLineEdit { background-color: white; border: 2px inset #808080; padding: 1px 3px; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QPushButton { background-color: #C0C0C0; border: 2px outset #FFFFFF; padding: 2px 12px; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QPushButton:hover { background-color: #D4D0C8; }
+QPushButton:pressed { border: 2px inset #808080; }
+QMenu { background-color: #C0C0C0; border: 2px outset #FFFFFF; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QMenu::item:selected { background-color: #000080; color: white; }
+QMenuBar { background-color: #C0C0C0; font-family: 'MS Sans Serif'; font-size: 8pt; }
+QMenuBar::item:selected { background-color: #000080; color: white; }
+QDialog { background-color: #C0C0C0; }
