@@ -1,11 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 import zipfile
 import tarfile
-import gzip
-import bz2
-import ctypes
 import shutil
+import ctypes
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -15,10 +16,12 @@ from PyQt6.QtWidgets import (
     QStatusBar, QFileDialog, QMessageBox, QAbstractItemView,
     QMenu, QTreeWidget, QTreeWidgetItem, QSplitter, QLabel, QFrame,
     QInputDialog, QLineEdit, QToolButton, QPushButton, QFileIconProvider,
-    QDialog, QCheckBox, QDialogButtonBox
+    QDialog
 )
 from PyQt6.QtCore import Qt, QSize, QSettings, QFileInfo
 from PyQt6.QtGui import QIcon, QAction, QFont, QDragEnterEvent, QDropEvent
+
+from design import ThemeManager, WelcomeDialog, MigrationDialog, SettingsDialog, Translator
 
 
 TEMP_DIR = Path.home() / "VanadiumTemp"
@@ -65,10 +68,8 @@ def cleanup_temp_folder():
                     item.rmdir()
             except:
                 pass
-        if failed_files > 0:
-            print(f"Пропущено занятых файлов: {failed_files}")
-    except Exception as e:
-        print(f"Ошибка очистки темпа: {e}")
+    except Exception:
+        pass
 
 
 def remove_empty_parent_dirs(file_path, stop_at_dir):
@@ -89,117 +90,22 @@ def remove_empty_parent_dirs(file_path, stop_at_dir):
         pass
 
 
-class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Настройки")
-        self.setFixedSize(450, 420)
-        self.setStyleSheet("""
-            QDialog { background-color: #F3F3F3; }
-            QLabel { font-family: 'Segoe UI'; font-size: 10pt; color: #333; }
-            QCheckBox { font-family: 'Segoe UI'; font-size: 10pt; spacing: 10px; padding: 5px; }
-            QPushButton {
-                background-color: #0078D4; color: white; border: none;
-                padding: 8px 16px; border-radius: 4px; font-family: 'Segoe UI';
-            }
-            QPushButton:hover { background-color: #006CBE; }
-        """)
-        layout = QVBoxLayout(self)
-        header = QLabel("Параметры отображения")
-        header.setStyleSheet("font-weight: bold; font-size: 12pt; margin-bottom: 10px;")
-        layout.addWidget(header)
-        self.show_hidden_checkbox = QCheckBox("Показывать скрытые файлы и папки")
-        self.show_system_checkbox = QCheckBox("Показывать системные файлы")
-        layout.addWidget(self.show_hidden_checkbox)
-        layout.addWidget(self.show_system_checkbox)
-        layout.addSpacing(10)
-        temp_header = QLabel("Временные файлы")
-        temp_header.setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 5px;")
-        layout.addWidget(temp_header)
-        temp_btn = QPushButton("Очистить временную папку")
-        temp_btn.clicked.connect(self.clean_temp_now)
-        layout.addWidget(temp_btn)
-        temp_info = QLabel(f"Папка: {TEMP_DIR}")
-        temp_info.setStyleSheet("color: #666; font-size: 9pt;")
-        temp_info.setWordWrap(True)
-        layout.addWidget(temp_info)
-        layout.addSpacing(10)
-        about_header = QLabel("О программе")
-        about_header.setStyleSheet("font-weight: bold; font-size: 11pt; margin-top: 10px;")
-        layout.addWidget(about_header)
-        about_text = QLabel(
-            "<b>Vanadium Archiver v1.0.4</b><br><br>"
-            "Простой архиватор<br>"
-            "Поддерживаемые форматы: ZIP, TAR, GZ, BZ2<br><br>"
-            "Лицензия: MIT<br>"
-            "Python 3.14 (PSF License)<br>"
-            "PyQt6 (GNU GPL v3)<br><br>"
-            "Подробнее:<br>"
-            "<a href='https://github.com/bandopila122/Vanadium'>GitHub Repository</a><br>"
-            "<a href='https://github.com/bandopila122/Vanadium/blob/main/README.md'>README</a><br>"
-            "<a href='https://github.com/bandopila122/Vanadium/blob/main/LICENSE'>LICENSE</a>"
-        )
-        about_text.setOpenExternalLinks(True)
-        about_text.setWordWrap(True)
-        about_text.setStyleSheet("padding: 10px; background-color: white; border-radius: 4px;")
-        layout.addWidget(about_text)
-        layout.addStretch()
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-        self.load_settings()
-
-    def clean_temp_now(self):
-        try:
-            if TEMP_DIR.exists():
-                failed = 0
-                for item in list(TEMP_DIR.rglob('*')):
-                    try:
-                        if item.is_file() or item.is_symlink():
-                            item.unlink()
-                    except (PermissionError, OSError):
-                        failed += 1
-                    except:
-                        pass
-                for item in list(TEMP_DIR.rglob('*')):
-                    try:
-                        if item.is_dir() and not any(item.iterdir()):
-                            item.rmdir()
-                    except:
-                        pass
-                if failed > 0:
-                    QMessageBox.warning(self, "Частично", f"Очищено, но {failed} файлов заняты процессами")
-                else:
-                    QMessageBox.information(self, "Успех", "Временная папка очищена")
-            else:
-                QMessageBox.information(self, "Информация", "Папка пуста")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
-
-    def load_settings(self):
-        settings = QSettings("VanaArchiver", "Settings")
-        self.show_hidden_checkbox.setChecked(settings.value("show_hidden_files", False, type=bool))
-        self.show_system_checkbox.setChecked(settings.value("show_system_files", False, type=bool))
-
-    def save_settings(self):
-        settings = QSettings("VanaArchiver", "Settings")
-        settings.setValue("show_hidden_files", self.show_hidden_checkbox.isChecked())
-        settings.setValue("show_system_files", self.show_system_checkbox.isChecked())
-
-
 class VanadiumArchiver(QMainWindow):
-    def __init__(self):
+    def __init__(self, translator):
         super().__init__()
-        self.setWindowTitle("Vanadium Archiver")
+        self.tr = translator
+        self.setWindowTitle(self.tr.t("app_title"))
         self.setGeometry(100, 100, 1200, 800)
         self.setAcceptDrops(True)
+
         self.base_path = Path(sys.argv[0]).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
         self.icons_path = self.base_path / "icons"
         self.icon_provider = QFileIconProvider()
+
         icon_path = self.icons_path / "networkplace.ico"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
+
         self.current_archive = None
         self.archive_type = None
         self.files_list = []
@@ -207,35 +113,54 @@ class VanadiumArchiver(QMainWindow):
         self.navigation_history = []
         self.current_history_index = -1
         self.is_navigating = False
-        self.setup_style()
+
+        self.settings = QSettings("VanaArchiver", "Settings")
+
+        self._handle_migration()
+
+        self.show_hidden_files = self.settings.value("show_hidden_files", False, type=bool)
+        self.show_system_files = self.settings.value("show_system_files", False, type=bool)
+        self.current_theme = self.settings.value("theme", "win10", type=str)
+        self.current_lang = self.settings.value("language", "ru", type=str)
+
         self.setup_icons()
         self.create_ui()
         self.create_menus()
         self.create_toolbar()
-        self.settings = QSettings("VanaArchiver", "Settings")
-        self.show_hidden_files = self.settings.value("show_hidden_files", False, type=bool)
-        self.show_system_files = self.settings.value("show_system_files", False, type=bool)
+
+        ThemeManager.apply(self, self.current_theme, self.base_path)
+
+        self._show_welcome_if_needed()
+
         self.open_folder(Path.home())
 
-    def setup_style(self):
-        self.setStyleSheet("""
-            QMainWindow { background-color: #F3F3F3; }
-            QToolBar { background-color: #F3F3F3; border: none; padding: 4px; spacing: 5px; }
-            QToolButton { background-color: transparent; border: 1px solid transparent; padding: 6px; border-radius: 4px; font-family: 'Segoe UI'; }
-            QToolButton:hover { background-color: #E5E5E5; border: 1px solid #D0D0D0; }
-            QTableWidget { background-color: white; border: 1px solid #E0E0E0; gridline-color: #F0F0F0; selection-background-color: #0078D4; selection-color: white; font-family: 'Segoe UI'; font-size: 9pt; }
-            QHeaderView::section { background-color: #F3F3F3; border: none; border-right: 1px solid #E0E0E0; padding: 4px; font-weight: 600; color: #444; font-family: 'Segoe UI'; }
-            QTreeWidget { background-color: white; border: 1px solid #E0E0E0; selection-background-color: #0078D4; selection-color: white; font-family: 'Segoe UI'; font-size: 9pt; }
-            QStatusBar { background-color: #F3F3F3; border-top: 1px solid #E0E0E0; color: #555; font-family: 'Segoe UI'; }
-            QLineEdit { background-color: white; border: 1px solid #D0D0D0; padding: 4px 8px; border-radius: 4px; font-family: 'Segoe UI'; font-size: 9pt; }
-            QLineEdit:focus { border: 1px solid #0078D4; }
-            QPushButton { background-color: #0078D4; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-family: 'Segoe UI'; }
-            QPushButton:hover { background-color: #006CBE; }
-            QMenu { background-color: white; border: 1px solid #E0E0E0; font-family: 'Segoe UI'; font-size: 9pt; }
-            QMenu::item:selected { background-color: #0078D4; color: white; }
-        """)
-        font = QFont("Segoe UI", 9)
-        self.setFont(font)
+    def _handle_migration(self):
+        if self.settings.contains("migration_done"):
+            return
+
+        old_keys = [k for k in self.settings.allKeys() if k not in ['migration_done']]
+        if not old_keys:
+            self.settings.setValue("migration_done", True)
+            self.settings.setValue("welcome_shown", False)
+            return
+
+        dialog = MigrationDialog(self, self.tr)
+        dialog.exec()
+        choice = dialog.get_choice()
+
+        if choice == 2:
+            self.settings.clear()
+            self.settings.sync()
+            self.settings = QSettings("VanaArchiver", "Settings")
+
+        self.settings.setValue("migration_done", True)
+
+    def _show_welcome_if_needed(self):
+        if not self.settings.value("welcome_shown", False, type=bool):
+            dlg = WelcomeDialog(self, self.tr)
+            dlg.exec()
+            if dlg.should_not_show_again():
+                self.settings.setValue("welcome_shown", True)
 
     def setup_icons(self):
         self.icons = {}
@@ -262,35 +187,49 @@ class VanadiumArchiver(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+
         address_frame = QFrame()
         address_frame.setFixedHeight(36)
-        address_frame.setStyleSheet("background-color: #F3F3F3; border-bottom: 1px solid #E0E0E0;")
+        address_frame.setObjectName("addressFrame")
         address_layout = QHBoxLayout(address_frame)
         address_layout.setContentsMargins(8, 4, 8, 4)
         address_layout.setSpacing(6)
+
         up_btn = QToolButton()
         up_btn.setText("⬆")
         up_btn.setFixedSize(28, 28)
-        up_btn.setToolTip("На уровень выше")
+        up_btn.setToolTip(self.tr.t("tooltip_up"))
         up_btn.clicked.connect(self.go_up_folder)
         address_layout.addWidget(up_btn)
+
         self.address_entry = QLineEdit()
         self.address_entry.returnPressed.connect(self.go_to_path)
         address_layout.addWidget(self.address_entry, 1)
-        go_btn = QPushButton("Перейти")
+
+        go_btn = QPushButton(self.tr.t("button_go"))
         go_btn.clicked.connect(self.go_to_path)
         address_layout.addWidget(go_btn)
+
         main_layout.addWidget(address_frame)
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
+
         self.folder_tree = QTreeWidget()
-        self.folder_tree.setHeaderLabel("Папки")
+        self.folder_tree.setHeaderLabel(self.tr.t("tree_folders"))
         self.folder_tree.header().hide()
         self.folder_tree.setMinimumWidth(220)
         self.folder_tree.setIconSize(QSize(16, 16))
         splitter.addWidget(self.folder_tree)
+
         self.file_table = QTableWidget()
         self.file_table.setColumnCount(5)
-        self.file_table.setHorizontalHeaderLabels(['', 'Имя', 'Размер', 'Тип', 'Изменён'])
+        self.file_table.setHorizontalHeaderLabels([
+            '',
+            self.tr.t("column_name"),
+            self.tr.t("column_size"),
+            self.tr.t("column_type"),
+            self.tr.t("column_modified")
+        ])
         self.file_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.file_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.file_table.setColumnWidth(0, 30)
@@ -300,9 +239,12 @@ class VanadiumArchiver(QMainWindow):
         self.file_table.setAcceptDrops(True)
         self.file_table.viewport().setAcceptDrops(True)
         splitter.addWidget(self.file_table)
+
         splitter.setSizes([250, 950])
         main_layout.addWidget(splitter)
-        self.statusBar().showMessage("Готов")
+
+        self.statusBar().showMessage(self.tr.t("status_ready"))
+
         self.file_table.doubleClicked.connect(self.on_file_double_click)
         self.file_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_table.customContextMenuRequested.connect(self.show_context_menu)
@@ -310,20 +252,23 @@ class VanadiumArchiver(QMainWindow):
 
     def create_menus(self):
         menubar = self.menuBar()
-        file_menu = menubar.addMenu("Файл")
-        file_menu.addAction("Открыть архив...", self.open_archive_dialog)
-        file_menu.addAction("Открыть папку...", self.open_folder_dialog)
+
+        file_menu = menubar.addMenu(self.tr.t("menu_file"))
+        file_menu.addAction(self.tr.t("action_open_archive"), self.open_archive_dialog)
+        file_menu.addAction(self.tr.t("action_open_folder"), self.open_folder_dialog)
         file_menu.addSeparator()
-        file_menu.addAction("Выход", self.close)
-        archive_menu = menubar.addMenu("Архив")
-        archive_menu.addAction("Добавить файлы...", self.add_files)
-        archive_menu.addAction("Добавить папку...", self.add_folder)
-        archive_menu.addAction("Извлечь...", self.extract_files)
-        archive_menu.addAction("Тест архива", self.test_archive)
+        file_menu.addAction(self.tr.t("action_exit"), self.close)
+
+        archive_menu = menubar.addMenu(self.tr.t("menu_archive"))
+        archive_menu.addAction(self.tr.t("action_add_files"), self.add_files)
+        archive_menu.addAction(self.tr.t("action_add_folder"), self.add_folder)
+        archive_menu.addAction(self.tr.t("action_extract"), self.extract_files)
+        archive_menu.addAction(self.tr.t("action_test"), self.test_archive)
         archive_menu.addSeparator()
-        archive_menu.addAction("Удалить", self.delete_files)
-        tools_menu = menubar.addMenu("Сервис")
-        settings_action = QAction("Настройки...", self)
+        archive_menu.addAction(self.tr.t("action_delete"), self.delete_files)
+
+        tools_menu = menubar.addMenu(self.tr.t("menu_tools"))
+        settings_action = QAction(self.tr.t("action_settings"), self)
         settings_action.triggered.connect(self.show_settings)
         tools_menu.addAction(settings_action)
 
@@ -332,13 +277,15 @@ class VanadiumArchiver(QMainWindow):
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
         toolbar.setIconSize(QSize(32, 32))
         self.addToolBar(toolbar)
+
         buttons = [
-            ('add', 'Добавить', self.add_files),
-            ('extract', 'Извлечь', self.extract_files),
-            ('folder', 'Открыть', self.open_folder_dialog),
-            ('delete', 'Удалить', self.delete_files),
-            ('search', 'Поиск', self.search_files),
+            ('add', self.tr.t("toolbar_add"), self.add_files),
+            ('extract', self.tr.t("toolbar_extract"), self.extract_files),
+            ('folder', self.tr.t("toolbar_open"), self.open_folder_dialog),
+            ('delete', self.tr.t("toolbar_delete"), self.delete_files),
+            ('search', self.tr.t("toolbar_search"), self.search_files),
         ]
+
         for icon_name, text, command in buttons:
             action = QAction(text, self)
             if icon_name in self.icons:
@@ -358,9 +305,9 @@ class VanadiumArchiver(QMainWindow):
     def open_archive_dialog(self):
         filename, _ = QFileDialog.getOpenFileName(
             self,
-            "Открыть архив",
+            self.tr.t("dialog_open_archive"),
             str(Path.home()),
-            "Архивы (*.zip *.rar *.7z *.tar *.tar.gz *.tgz *.tar.bz2 *.gz *.bz2);;Все файлы (*)"
+            self.tr.t("filter_archives") + ";;" + self.tr.t("filter_all")
         )
         if filename:
             self.open_archive(Path(filename))
@@ -384,7 +331,7 @@ class VanadiumArchiver(QMainWindow):
                     self.open_folder(first_file.parent)
 
     def open_folder_dialog(self):
-        folder = QFileDialog.getExistingDirectory(self, "Выберите папку", str(Path.home()))
+        folder = QFileDialog.getExistingDirectory(self, self.tr.t("dialog_open_folder"), str(Path.home()))
         if folder:
             self.open_folder(Path(folder))
 
@@ -408,9 +355,9 @@ class VanadiumArchiver(QMainWindow):
                 if not self.show_hidden_files and is_hidden_or_system(item):
                     continue
                 self.add_file_to_table(item)
-            self.statusBar().showMessage(f"Папка: {folder_path.name}")
+            self.statusBar().showMessage(f"{self.tr.t('status_folder')}: {folder_path.name}")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def open_archive(self, filepath):
         try:
@@ -440,9 +387,9 @@ class VanadiumArchiver(QMainWindow):
             self.create_virtual_folders()
             self.refresh_current_view()
             self.current_archive = filepath
-            self.statusBar().showMessage(f"Архив: {filepath.name} ({len(self.files_list)} объектов)")
+            self.statusBar().showMessage(f"{self.tr.t('status_archive')}: {filepath.name} ({len(self.files_list)})")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def parse_archive_item(self, name, size, date_mod, is_dir):
         try:
@@ -465,7 +412,7 @@ class VanadiumArchiver(QMainWindow):
                 'full_path': decoded_name.rstrip('/'),
                 'name': display_name,
                 'size': size,
-                'type': 'Папка' if is_dir else self.get_file_type(decoded_name),
+                'type': self.tr.t('type_folder') if is_dir else self.get_file_type(decoded_name),
                 'modified': datetime(*date_mod).strftime('%Y-%m-%d %H:%M') if isinstance(date_mod, tuple) else date_mod.strftime('%Y-%m-%d %H:%M'),
                 'is_dir': is_dir
             })
@@ -489,7 +436,7 @@ class VanadiumArchiver(QMainWindow):
                 'full_path': folder_path,
                 'name': folder_path.split('/')[-1],
                 'size': 0,
-                'type': 'Папка',
+                'type': self.tr.t('type_folder'),
                 'modified': datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'is_dir': True
             })
@@ -539,7 +486,7 @@ class VanadiumArchiver(QMainWindow):
             'full_path': str(item),
             'name': item.name,
             'size': item.stat().st_size,
-            'type': 'Папка' if item.is_dir() else self.get_file_type(item.name),
+            'type': self.tr.t('type_folder') if item.is_dir() else self.get_file_type(item.name),
             'modified': datetime.fromtimestamp(item.stat().st_mtime).strftime('%Y-%m-%d %H:%M'),
             'is_dir': item.is_dir(),
             'real_path': str(item)
@@ -593,14 +540,14 @@ class VanadiumArchiver(QMainWindow):
     def get_file_type(self, filename):
         ext = Path(filename).suffix.lower()
         types = {
-            '.txt': 'Текст', '.pdf': 'PDF', '.doc': 'Word', '.docx': 'Word',
+            '.txt': self.tr.t('type_text'), '.pdf': 'PDF', '.doc': 'Word', '.docx': 'Word',
             '.xls': 'Excel', '.xlsx': 'Excel', '.jpg': 'JPEG', '.jpeg': 'JPEG',
             '.png': 'PNG', '.gif': 'GIF', '.mp3': 'MP3', '.mp4': 'MP4',
             '.avi': 'AVI', '.exe': 'EXE', '.py': 'Python', '.js': 'JavaScript',
             '.html': 'HTML', '.css': 'CSS', '.zip': 'ZIP', '.rar': 'RAR',
             '.7z': '7Z', '.tar': 'TAR', '.gz': 'GZIP', '.bz2': 'BZIP2'
         }
-        return types.get(ext, 'Файл')
+        return types.get(ext, self.tr.t('type_file'))
 
     def format_size(self, size):
         if size == 0:
@@ -663,7 +610,7 @@ class VanadiumArchiver(QMainWindow):
                 else:
                     os.startfile(target)
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def go_up_folder(self):
         if self.current_archive:
@@ -690,7 +637,7 @@ class VanadiumArchiver(QMainWindow):
                     self.current_archive_path = None
                     self.archive_type = None
                     self.files_list = []
-                    self.statusBar().showMessage("Выход из архива")
+                    self.statusBar().showMessage(self.tr.t("status_exit_archive"))
         else:
             current_path = Path(self.address_entry.text())
             if current_path.parent != current_path:
@@ -708,15 +655,15 @@ class VanadiumArchiver(QMainWindow):
         menu = QMenu(self)
         row = self.file_table.rowAt(position.y())
         if row >= 0:
-            menu.addAction("Открыть", lambda: self.on_file_double_click(self.file_table.model().index(row, 0)))
-            menu.addAction("Извлечь", self.extract_files)
+            menu.addAction(self.tr.t("ctx_open"), lambda: self.on_file_double_click(self.file_table.model().index(row, 0)))
+            menu.addAction(self.tr.t("ctx_extract"), self.extract_files)
             if self.current_archive:
-                menu.addAction("Удалить", self.delete_files)
+                menu.addAction(self.tr.t("ctx_delete"), self.delete_files)
             menu.addSeparator()
-            menu.addAction("Свойства", lambda: self.show_properties(row))
+            menu.addAction(self.tr.t("ctx_properties"), lambda: self.show_properties(row))
         else:
             if self.current_archive:
-                menu.addAction("Свойства архива", self.show_archive_properties)
+                menu.addAction(self.tr.t("ctx_archive_properties"), self.show_archive_properties)
         menu.exec(self.file_table.viewport().mapToGlobal(position))
 
     def show_properties(self, row):
@@ -727,33 +674,33 @@ class VanadiumArchiver(QMainWindow):
         size = self.format_size(file_info['size'])
         ftype = file_info['type']
         full_path = file_info['full_path']
-        QMessageBox.information(self, "Свойства", f"Имя: {name}\nПуть в архиве: {full_path}\nРазмер: {size}\nТип: {ftype}")
+        text = f"{self.tr.t('prop_name')}: {name}\n{self.tr.t('prop_path')}: {full_path}\n{self.tr.t('prop_size')}: {size}\n{self.tr.t('prop_type')}: {ftype}"
+        QMessageBox.information(self, self.tr.t("ctx_properties"), text)
 
     def show_archive_properties(self):
         if not self.current_archive:
             return
         stats = self.current_archive.stat()
-        QMessageBox.information(self, "Свойства архива",
-                                f"Имя: {self.current_archive.name}\nРазмер: {self.format_size(stats.st_size)}\nОбъектов: {len(self.files_list)}")
+        text = f"{self.tr.t('prop_name')}: {self.current_archive.name}\n{self.tr.t('prop_size')}: {self.format_size(stats.st_size)}\n{self.tr.t('prop_objects')}: {len(self.files_list)}"
+        QMessageBox.information(self, self.tr.t("ctx_archive_properties"), text)
 
     def add_files(self):
         if not self.current_archive:
-            QMessageBox.warning(self, "Внимание", "Сначала откройте или создайте архив")
+            QMessageBox.warning(self, self.tr.t("warning"), self.tr.t("msg_open_archive_first"))
             return
-        files, _ = QFileDialog.getOpenFileNames(self, "Выберите файлы")
+        files, _ = QFileDialog.getOpenFileNames(self, self.tr.t("dialog_select_files"))
         if files:
             self.add_files_to_archive(files)
 
     def add_folder(self):
         if not self.current_archive:
-            QMessageBox.warning(self, "Внимание", "Сначала откройте или создайте архив")
+            QMessageBox.warning(self, self.tr.t("warning"), self.tr.t("msg_open_archive_first"))
             return
-        folder = QFileDialog.getExistingDirectory(self, "Выберите папку")
+        folder = QFileDialog.getExistingDirectory(self, self.tr.t("dialog_select_folder"))
         if folder:
             self.add_files_to_archive([folder])
 
     def add_files_to_archive(self, files):
-        """Добавление файлов/папок в архив с защитой от самоархивирования"""
         try:
             current_archive_resolved = None
             if self.current_archive:
@@ -770,16 +717,13 @@ class VanadiumArchiver(QMainWindow):
                             p_resolved = p.resolve()
                         except:
                             p_resolved = p
-                        
                         if current_archive_resolved and p_resolved == current_archive_resolved:
-                            QMessageBox.warning(self, "Внимание", f"Пропущен файл: {p.name}\nНельзя архивировать файл в самого себя")
+                            QMessageBox.warning(self, self.tr.t("warning"), f"{self.tr.t('msg_skip_self')}: {p.name}")
                             continue
-                        
                         if p.is_dir():
                             self._add_directory_to_zip(z, p, current_archive_resolved)
                         else:
                             z.write(f, p.name)
-            
             elif self.archive_type == 'tar':
                 with tarfile.open(self.current_archive, 'a') as t:
                     for f in files:
@@ -788,13 +732,11 @@ class VanadiumArchiver(QMainWindow):
                             p_resolved = p.resolve()
                         except:
                             p_resolved = p
-                        
                         if current_archive_resolved and p_resolved == current_archive_resolved:
-                            QMessageBox.warning(self, "Внимание", f"Пропущен файл: {p.name}\nНельзя архивировать файл в самого себя")
+                            QMessageBox.warning(self, self.tr.t("warning"), f"{self.tr.t('msg_skip_self')}: {p.name}")
                             continue
-                        
+
                         def tar_filter(tarinfo):
-                            """Фильтр для исключения текущего архива из TAR"""
                             try:
                                 item_path = Path(tarinfo.name).resolve()
                                 if current_archive_resolved and item_path == current_archive_resolved:
@@ -802,19 +744,18 @@ class VanadiumArchiver(QMainWindow):
                             except:
                                 pass
                             return tarinfo
-                        
+
                         if p.is_dir():
                             t.add(str(p), arcname=p.name, filter=tar_filter)
                         else:
                             t.add(str(p), arcname=p.name)
-            
+
             self.open_archive(self.current_archive)
-            QMessageBox.information(self, "Успех", f"Добавлено: {len(files)}")
+            QMessageBox.information(self, self.tr.t("success"), f"{self.tr.t('msg_added')}: {len(files)}")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def _add_directory_to_zip(self, zip_ref, dir_path, current_archive_resolved):
-        """Рекурсивное добавление папки в ZIP с проверкой на самоархивирование"""
         for root, dirs, filenames in os.walk(dir_path):
             for filename in filenames:
                 file_path = Path(root) / filename
@@ -822,85 +763,68 @@ class VanadiumArchiver(QMainWindow):
                     file_resolved = file_path.resolve()
                 except:
                     file_resolved = file_path
-                
                 if current_archive_resolved and file_resolved == current_archive_resolved:
                     continue
-                
                 arcname = str(file_path.relative_to(dir_path.parent))
                 zip_ref.write(file_path, arcname)
 
     def extract_files(self):
-        """Массовое извлечение с сохранением структуры архива"""
         selected = self.file_table.selectionModel().selectedRows()
         if not selected:
-            QMessageBox.warning(self, "Внимание", "Выберите файлы для извлечения")
+            QMessageBox.warning(self, self.tr.t("warning"), self.tr.t("msg_select_files"))
             return
-        
-        dest = QFileDialog.getExistingDirectory(self, "Куда извлечь?")
+        dest = QFileDialog.getExistingDirectory(self, self.tr.t("dialog_extract_to"))
         if not dest:
             return
-
         try:
             for idx in selected:
                 file_info = self.get_file_info_at_row(idx.row())
                 if not file_info:
                     continue
                 original_path = file_info['original_path']
-
                 if self.archive_type == 'zip':
                     with zipfile.ZipFile(self.current_archive, 'r') as z:
                         z.extract(original_path, dest)
                 elif self.archive_type == 'tar':
                     with tarfile.open(self.current_archive, 'r:*') as t:
                         t.extract(original_path, dest)
-            QMessageBox.information(self, "Успех", f"Извлечено: {len(selected)} файлов/папок")
+            QMessageBox.information(self, self.tr.t("success"), f"{self.tr.t('msg_extracted')}: {len(selected)}")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def delete_files(self):
-        """Безопасное удаление файлов из ZIP с проверкой целостности"""
         if not self.current_archive or self.archive_type != 'zip':
-            QMessageBox.warning(self, "Внимание", "Удаление поддерживается только для ZIP")
+            QMessageBox.warning(self, self.tr.t("warning"), self.tr.t("msg_zip_only"))
             return
         selected = self.file_table.selectionModel().selectedRows()
         if not selected:
             return
-        if QMessageBox.question(self, "Удалить?", "Удалить выбранные файлы?") == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, self.tr.t("confirm"), self.tr.t("msg_delete_confirm")) == QMessageBox.StandardButton.Yes:
             to_delete_original = set()
             for idx in selected:
                 file_info = self.get_file_info_at_row(idx.row())
                 if file_info:
                     to_delete_original.add(file_info['original_path'])
-            
             new_arc = self.current_archive.with_suffix('.tmp')
-            
             try:
-                # Шаг 1: Создаём новый архив
                 with zipfile.ZipFile(new_arc, 'w') as nz:
                     with zipfile.ZipFile(self.current_archive, 'r') as oz:
                         for item in oz.infolist():
                             if item.filename not in to_delete_original:
                                 nz.writestr(item, oz.read(item.filename))
-                
-                # Шаг 2: Проверяем, что новый архив создан и не пустой
                 if not new_arc.exists() or new_arc.stat().st_size == 0:
-                    raise Exception("Новый архив пуст или не создан")
-                
-                # Шаг 3: Безопасная замена - сначала удаляем старый, потом переименовываем новый
+                    raise Exception("New archive empty")
                 self.current_archive.unlink()
                 new_arc.rename(self.current_archive)
-                
                 self.open_archive(self.current_archive)
-                QMessageBox.information(self, "Успех", "Файлы удалены")
-                
+                QMessageBox.information(self, self.tr.t("success"), self.tr.t("msg_deleted"))
             except Exception as e:
-                # Если что-то пошло не так, пытаемся восстановить
                 if new_arc.exists():
                     try:
                         new_arc.unlink()
                     except:
                         pass
-                QMessageBox.critical(self, "Ошибка", f"Не удалось удалить файлы:\n{e}\n\nСтарый архив сохранён.")
+                QMessageBox.critical(self, self.tr.t("error"), f"{self.tr.t('msg_delete_fail')}\n{e}")
 
     def test_archive(self):
         if not self.current_archive:
@@ -908,12 +832,12 @@ class VanadiumArchiver(QMainWindow):
         try:
             if self.archive_type == 'zip':
                 res = zipfile.ZipFile(self.current_archive, 'r').testzip()
-                QMessageBox.information(self, "Тест", "Архив цел" if not res else f"Битый файл: {res}")
+                QMessageBox.information(self, self.tr.t("action_test"), self.tr.t("msg_archive_ok") if not res else f"{self.tr.t('msg_archive_bad')}: {res}")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", str(e))
+            QMessageBox.critical(self, self.tr.t("error"), str(e))
 
     def search_files(self):
-        term, ok = QInputDialog.getText(self, "Поиск", "Имя файла:")
+        term, ok = QInputDialog.getText(self, self.tr.t("toolbar_search"), self.tr.t("dialog_search_prompt"))
         if not ok or not term:
             return
         term_lower = term.lower()
@@ -935,16 +859,28 @@ class VanadiumArchiver(QMainWindow):
             )
             self.file_table.setFocus(Qt.FocusReason.OtherFocusReason)
             self.file_table.setCurrentCell(found_rows[0], 1)
-            QMessageBox.information(self, "Поиск", f"Найдено: {len(found_rows)}")
+            QMessageBox.information(self, self.tr.t("toolbar_search"), f"{self.tr.t('msg_found')}: {len(found_rows)}")
         else:
-            QMessageBox.information(self, "Поиск", "Ничего не найдено")
+            QMessageBox.information(self, self.tr.t("toolbar_search"), self.tr.t("msg_not_found"))
 
     def show_settings(self):
-        dlg = SettingsDialog(self)
+        dlg = SettingsDialog(self, self.tr, self.current_theme, self.current_lang)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             dlg.save_settings()
             self.show_hidden_files = dlg.show_hidden_checkbox.isChecked()
             self.show_system_files = dlg.show_system_checkbox.isChecked()
+
+            new_theme = dlg.get_selected_theme()
+            if new_theme != self.current_theme:
+                self.current_theme = new_theme
+                ThemeManager.apply(self, self.current_theme, self.base_path, self.tr)
+                QMessageBox.information(self, self.tr.t("action_settings"), self.tr.t("msg_theme_changed"))
+
+            new_lang = dlg.get_selected_language()
+            if new_lang != self.current_lang:
+                self.current_lang = new_lang
+                QMessageBox.information(self, self.tr.t("action_settings"), self.tr.t("msg_restart_lang"))
+
             if not self.current_archive:
                 self.open_folder(Path(self.address_entry.text()))
 
@@ -970,7 +906,13 @@ def main():
     cleanup_temp_folder()
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
-    window = VanadiumArchiver()
+
+    base_path = Path(sys.argv[0]).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
+    settings = QSettings("VanaArchiver", "Settings")
+    current_lang = settings.value("language", "ru", type=str)
+    translator = Translator(base_path, current_lang)
+
+    window = VanadiumArchiver(translator)
     window.show()
     sys.exit(app.exec())
 
