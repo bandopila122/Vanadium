@@ -1,4 +1,4 @@
-```markdown
+
 <p align="center">
   <img src="icons/NetworkPlace.ico" width="84" alt="Vanadium Logo">
 </p>
@@ -154,4 +154,4 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 <p align="center">
   Made with 💎 by <a href="https://github.com/bandopila122">bandopila122</a>
 </p>
-```
+
