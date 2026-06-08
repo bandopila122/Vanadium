@@ -71,8 +71,9 @@ Vanadium/
 ├── locales/             # Локализация (.json)
 │   ├── ru.json
 │   └── en.json
-└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
 ```
+└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
+
 
 ### 🛠️ Технологии и зависимости
 
@@ -132,8 +133,9 @@ Vanadium/
 └── locales/             # Localization (.json)
 │   ├── ru.json
 │   └── en.json
-└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
 ```
+└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
+
 
 ### 🛠️ Technologies and Dependencies
 
