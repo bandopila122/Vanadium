@@ -68,9 +68,10 @@ Vanadium/
 │   ├── win10.qss
 │   ├── winxp.qss
 │   └── win9x.qss
-└── locales/             # Локализация (.json)
-    ├── ru.json
-    └── en.json
+├── locales/             # Локализация (.json)
+│   ├── ru.json
+│   └── en.json
+└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
 ```
 
 ### 🛠️ Технологии и зависимости
@@ -129,8 +130,9 @@ Vanadium/
 │   ├── winxp.qss
 │   └── win9x.qss
 └── locales/             # Localization (.json)
-    ├── ru.json
-    └── en.json
+│   ├── ru.json
+│   └── en.json
+└── [docs](https://github.com/bandopila122/Vanadium/tree/main/docs)
 ```
 
 ### 🛠️ Technologies and Dependencies
